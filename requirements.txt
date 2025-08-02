@@ -3,3 +3,12 @@ stripe==9.7.0
 gspread==5.12.4
 google-auth==2.29.0
 python-dotenv==1.0.1
+gunicorn
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-core
+google-cloud-core
+google-cloud-storage
+stripe
