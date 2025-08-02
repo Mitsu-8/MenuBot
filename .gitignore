@@ -3,6 +3,18 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# 環境変数などの機密情報
+.env
+*.json
+
+# VSCode やエディタの設定
+.vscode/
+*.swp
+
+# MacやWindowsの不要ファイル
+.DS_Store
+Thumbs.db
+
 # C extensions
 *.so
 
