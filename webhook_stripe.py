@@ -83,7 +83,7 @@ def update_user_plan_sheet(user_id: str, plan: str):
 
 app = Flask(__name__)
 
-@app.route("/webhook", methods=["POST"])
+@app.route("/stripe-webhook", methods=["POST"])
 def stripe_webhook():
     payload = request.data
     sig_header = request.headers.get("Stripe-Signature", "")
@@ -113,3 +113,4 @@ def stripe_webhook():
 if __name__ == "__main__":
     # ローカル実行用（Render では Start Command に gunicorn を使う）
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
