@@ -97,9 +97,13 @@ def stripe_webhook():
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
+        print(f"session:{sesstion}")
         meta = session.get("metadata") or {}
+        print(f"metadata:{metadata}")
         user_id = meta.get("user_id")
+        print(f"user_id:{user_id}")
         plan = meta.get("plan")  # "standard" or "trial"
+        print(f"plan:{plan}")
         if user_id and plan:
             try:
                 update_user_plan_sheet(user_id, plan)
@@ -113,4 +117,5 @@ def stripe_webhook():
 if __name__ == "__main__":
     # ローカル実行用（Render では Start Command に gunicorn を使う）
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
 
