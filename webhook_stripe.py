@@ -7,72 +7,109 @@ import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 
-# ローカル開発時の環境変数読み込み
 load_dotenv()
 
-# Stripe秘密キーとWebhook署名キーを環境変数から取得
+# Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
-# Google Sheets 認証情報
+# Google Sheets
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-SERVICE_ACCOUNT_FILE = 'credentials.json'  # Render上では環境変数 or 永続ストレージで配置
+SHEET_NAME = os.getenv("SHEET_NAME", "ユーザー管理")
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
 
-# Flaskアプリ作成
+def _build_credentials():
+    """GOOGLE_CREDENTIALS_JSON（1行JSON）> credentials.json の順で読み込む"""
+    env_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if env_json:
+        info = json.loads(env_json)
+        return Credentials.from_service_account_info(info, scopes=SCOPES)
+    # フォールバック（ローカル等）
+    return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+
+def _get_sheet():
+    creds = _build_credentials()
+    client = gspread.authorize(creds)
+    return client.open_by_key(SPREADSHEET_ID).worksheet(SHEET_NAME)
+
+def _header_map(sheet):
+    headers = sheet.row_values(1)
+    idx = {h: i+1 for i, h in enumerate(headers)}
+    # 想定ヘッダー：user_id, plan, daily_count, last_used_date, registered_date, expire_date
+    return idx
+
+def update_user_plan_sheet(user_id: str, plan: str):
+    sheet = _get_sheet()
+    idx = _header_map(sheet)
+    rows = sheet.get_all_records()
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    # 期限は standard:30日, trial:7日 と仮定
+    period = 30 if plan == "standard" else 7
+    expire = (now + timedelta(days=period)).strftime("%Y-%m-%d")
+
+    # 既存行の探索
+    for i, row in enumerate(rows, start=2):
+        if str(row.get("user_id", "")) == str(user_id):
+            # plan / registered_date / expire_date を更新
+            if "plan" in idx:
+                sheet.update_cell(i, idx["plan"], plan)
+            if "registered_date" in idx:
+                sheet.update_cell(i, idx["registered_date"], today)
+            if "expire_date" in idx:
+                sheet.update_cell(i, idx["expire_date"], expire)
+            # daily_count はリセット
+            if "daily_count" in idx:
+                sheet.update_cell(i, idx["daily_count"], 0)
+            if "last_used_date" in idx:
+                sheet.update_cell(i, idx["last_used_date"], today)
+            return
+
+    # 無ければ新規追加（ヘッダー順と同じ並びにするのが安全）
+    values = {
+        "user_id": user_id,
+        "plan": plan,
+        "daily_count": 0,
+        "last_used_date": today,
+        "registered_date": today,
+        "expire_date": expire,
+    }
+    headers = sheet.row_values(1)
+    row_out = [values.get(h, "") for h in headers]
+    sheet.append_row(row_out, value_input_option="USER_ENTERED")
+
 app = Flask(__name__)
 
-# Webhookエンドポイント
-@app.route('/webhook', methods=['POST'])
+@app.route("/webhook", methods=["POST"])
 def stripe_webhook():
     payload = request.data
-    sig_header = request.headers.get('Stripe-Signature')
+    sig_header = request.headers.get("Stripe-Signature", "")
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except ValueError:
-        return 'Invalid payload', 400
+        return "Invalid payload", 400
     except stripe.error.SignatureVerificationError:
-        return 'Invalid signature', 400
+        return "Invalid signature", 400
 
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        user_id = session['metadata'].get('user_id')
-        plan = session['metadata'].get('plan')  # "standard"など
-
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        meta = session.get("metadata") or {}
+        user_id = meta.get("user_id")
+        plan = meta.get("plan")  # "standard" or "trial"
         if user_id and plan:
             try:
                 update_user_plan_sheet(user_id, plan)
-                print(f"{user_id} を {plan} プランとして登録しました。")
             except Exception as e:
-                print(f"スプレッドシート更新エラー: {e}")
-                return 'Sheet update failed', 500
+                print(f"[SHEET UPDATE ERROR] {e}")
+                return "Sheet update failed", 500
 
-    return jsonify({'status': 'success'}), 200
+    return jsonify({"status": "ok"}), 200
 
-# Google Sheets を更新する処理
-def update_user_plan_sheet(user_id, plan):
-    credentials = Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES
-    )
-    client = gspread.authorize(credentials)
-    sheet = client.open_by_key(SPREADSHEET_ID).sheet1
-
-    now = datetime.now()
-    today_str = now.strftime('%Y/%m/%d')
-    expire_str = (now + timedelta(days=30)).strftime('%Y/%m/%d')
-
-    # シート内を検索して更新、存在しない場合は新規追加
-    records = sheet.get_all_records()
-    for i, row in enumerate(records, start=2):  # 1行目はヘッダー
-        if row.get("user_id") == user_id:
-            sheet.update(f"D{i}", plan)
-            sheet.update(f"E{i}", today_str)
-            sheet.update(f"F{i}", expire_str)
-            return
-
-    # 新規ユーザー
-    sheet.append_row([user_id, 0, '', plan, today_str, expire_str])
-
-if __name__ == '__main__':
-    app.run(port=5000)
+# Render の Free 環境でもローカルでも動くように
+if __name__ == "__main__":
+    # ローカル実行用（Render では Start Command に gunicorn を使う）
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
