@@ -1,6 +1,7 @@
 import os
 import json
-from datetime import datetime, timedelta
+import traceback
+from datetime import datetime, timedelta, timezone
 import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
@@ -89,5 +90,6 @@ def check_user_plan(user_id: str):
 
     # 未登録ユーザーは trial でも free でも方針次第。ここでは「free未登録」とみなす
     return {"status": "limit", "plan": "free"}
+
 
 
