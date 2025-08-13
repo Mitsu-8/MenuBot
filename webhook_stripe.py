@@ -98,13 +98,11 @@ def stripe_webhook():
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         print(f"session:{session}")
-        meta = session.get("metadata") or {}
-        print(f"metadata:{meta}")
-        user_id = meta.get("user_id")
+        user_id = session.get("client_reference_id") # 代替パラメータとしてclient_reference_idを使用
         print(f"user_id:{user_id}")
         plan = "standard"
         print(f"plan:{plan}")
-        if user_id and plan:
+        if user_id:
             try:
                 update_user_plan_sheet(user_id, plan)
             except Exception as e:
@@ -117,6 +115,7 @@ def stripe_webhook():
 if __name__ == "__main__":
     # ローカル実行用（Render では Start Command に gunicorn を使う）
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
 
 
 
