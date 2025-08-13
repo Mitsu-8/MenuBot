@@ -16,7 +16,6 @@ SCOPES = [
 
 def _build_credentials():
     env_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-    print(f"env_json:{env_json}")
     if env_json:
         info = json.loads(env_json)
         return Credentials.from_service_account_info(info, scopes=SCOPES)
@@ -90,4 +89,5 @@ def check_user_plan(user_id: str):
 
     # 未登録ユーザーは trial でも free でも方針次第。ここでは「free未登録」とみなす
     return {"status": "limit", "plan": "free"}
+
 
