@@ -102,7 +102,7 @@ def stripe_webhook():
         print(f"metadata:{meta}")
         user_id = meta.get("user_id")
         print(f"user_id:{user_id}")
-        plan = meta.get("plan")  # "standard" or "trial"
+        plan = "standard"
         print(f"plan:{plan}")
         if user_id and plan:
             try:
@@ -117,6 +117,7 @@ def stripe_webhook():
 if __name__ == "__main__":
     # ローカル実行用（Render では Start Command に gunicorn を使う）
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
 
 
 
