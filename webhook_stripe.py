@@ -24,7 +24,7 @@ SCOPES = [
 
 def _build_credentials():
     """GOOGLE_CREDENTIALS_JSON（1行JSON）> credentials.json の順で読み込む"""
-    env_json = base64.b64decode(os.environ["GOOGLE_CREDENTIALS_JSON"]).decode("utf-8")
+    env_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
     if env_json:
         info = json.loads(env_json)
         return Credentials.from_service_account_info(info, scopes=SCOPES)
@@ -114,6 +114,7 @@ def stripe_webhook():
 if __name__ == "__main__":
     # ローカル実行用（Render では Start Command に gunicorn を使う）
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
 
 
 
