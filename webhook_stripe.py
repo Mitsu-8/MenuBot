@@ -44,13 +44,19 @@ def _header_map(sheet):
 
 def update_user_plan_sheet(user_id: str, plan: str):
     sheet = _get_sheet()
+    print(f"sheet")
     idx = _header_map(sheet)
+    print(f"idx")
     rows = sheet.get_all_records()
+    print(f"rows")
     now = datetime.now()
+    print(f"new{now}")
     today = now.strftime("%Y-%m-%d")
+    print(f"today{today}")
     # 期限は standard:30日, trial:7日 と仮定
     period = 30 if plan == "standard" else 7
     expire = (now + timedelta(days=period)).strftime("%Y-%m-%d")
+    print(f"expire{expire}")
 
     # 既存行の探索
     for i, row in enumerate(rows, start=2):
@@ -114,6 +120,7 @@ def stripe_webhook():
 if __name__ == "__main__":
     # ローカル実行用（Render では Start Command に gunicorn を使う）
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
 
 
 
