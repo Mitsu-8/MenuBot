@@ -109,6 +109,7 @@ def stripe_webhook():
         plan = "standard"
         if user_id:
             try:
+                print(f"user_id try in")
                 update_user_plan_sheet(user_id, plan)
             except Exception as e:
                 print(f"[SHEET UPDATE ERROR] {e}")
@@ -120,6 +121,7 @@ def stripe_webhook():
 if __name__ == "__main__":
     # ローカル実行用（Render では Start Command に gunicorn を使う）
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
 
 
 
