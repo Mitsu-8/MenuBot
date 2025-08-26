@@ -38,6 +38,8 @@ def _get_sheet():
     print(f"credentials.json get")
     client = gspread.authorize(creds)
     print(f"client")
+    print(f"SPREADSHEET_ID:{SPREADSHEET_ID}")
+    print(f"SHEET_NAME:{SHEET_NAME})
     return client.open_by_key(SPREADSHEET_ID).worksheet(SHEET_NAME)
 
 def _header_map(sheet):
@@ -125,6 +127,7 @@ def stripe_webhook():
 if __name__ == "__main__":
     # ローカル実行用（Render では Start Command に gunicorn を使う）
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
 
 
 
