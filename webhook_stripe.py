@@ -26,14 +26,18 @@ def _build_credentials():
     """GOOGLE_CREDENTIALS_JSON（1行JSON）> credentials.json の順で読み込む"""
     env_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
     if env_json:
+        print(f"env_json get")
         info = json.loads(env_json)
+        print(f"info get")
         return Credentials.from_service_account_info(info, scopes=SCOPES)
     # フォールバック（ローカル等）
     return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
 
 def _get_sheet():
     creds = _build_credentials()
+    print(f"credentials.json get")
     client = gspread.authorize(creds)
+    print(f"client")
     return client.open_by_key(SPREADSHEET_ID).worksheet(SHEET_NAME)
 
 def _header_map(sheet):
@@ -121,6 +125,7 @@ def stripe_webhook():
 if __name__ == "__main__":
     # ローカル実行用（Render では Start Command に gunicorn を使う）
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
 
 
 
