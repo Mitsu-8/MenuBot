@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LINE LIFF - Stripe Link</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <h1>プラン選択ページへ移動します</h1>
+  <p>読み込み中…</p>
+
+  <script>
+    // ★ここにあなたのLIFF IDを記入してください
+    const LIFF_ID = "YOUR_LIFF_ID_HERE";  // 例: "165abc1234567890-xxxxxx"
+
+    // Stripe Payment Link（?client_reference_id=LINEのuserId を付加）
+    const STRIPE_PAYMENT_LINK_BASE = "https://buy.stripe.com/test_4gwxxxxxxxxxxxxxx";
+
+    async function main() {
+      await liff.init({ liffId: LIFF_ID });
+
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+
+      const profile = await liff.getProfile();
+      const userId = profile.userId;
+
+      // StripeリンクにuserIdをクエリパラメータで付加してリダイレクト
+      const paymentUrl = `${STRIPE_PAYMENT_LINK_BASE}?client_reference_id=${encodeURIComponent(userId)}`;
+      window.location.href = paymentUrl;
+    }
+
+    main().catch(err => {
+      document.body.innerHTML = `<p style="color: red;">エラーが発生しました：${err}</p>`;
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
